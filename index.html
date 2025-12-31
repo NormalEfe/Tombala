@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Pro Yılbaşı Tombalası</title>
+    <title>Pro Yılbaşı Tombalası (Otomatik)</title>
     <script src="https://unpkg.com/peerjs@1.5.1/dist/peerjs.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@700&display=swap" rel="stylesheet">
@@ -11,586 +11,424 @@
         :root {
             --felt-green: #0b4625;
             --wood-dark: #3e2723;
-            --wood-light: #5d4037;
-            --card-bg: #f5f5f5;
             --gold: #ffd700;
-            --chip-color: rgba(41, 128, 185, 0.8);
+            --btn-ready: #27ae60;
+            --btn-wait: #95a5a6;
         }
 
         body {
             margin: 0;
             font-family: 'Roboto Condensed', sans-serif;
             background-color: var(--felt-green);
-            background-image: url("https://www.transparenttextures.com/patterns/felt.png"); /* Çuha dokusu */
+            background-image: url("https://www.transparenttextures.com/patterns/felt.png");
             color: white;
             height: 100vh;
             display: flex;
             flex-direction: column;
             overflow: hidden;
+            user-select: none;
         }
 
-        /* --- ORTAK ARAYÜZ --- */
-        .screen { display: none; height: 100%; width: 100%; flex-direction: column; align-items: center; justify-content: center; position: absolute; top:0; left:0; transition: opacity 0.5s; }
+        /* Arayüz */
+        .screen { display: none; height: 100%; width: 100%; flex-direction: column; align-items: center; justify-content: center; position: absolute; top:0; left:0; }
         .screen.active { display: flex; z-index: 10; }
 
         .panel {
-            background: rgba(0, 0, 0, 0.6);
+            background: rgba(0, 0, 0, 0.7);
             padding: 2rem;
             border-radius: 15px;
             border: 2px solid var(--gold);
             text-align: center;
             backdrop-filter: blur(5px);
-            box-shadow: 0 10px 30px rgba(0,0,0,0.8);
-            max-width: 90%;
+            width: 90%; max-width: 400px;
         }
 
-        input { padding: 15px; border-radius: 5px; border: none; font-size: 1.2rem; margin: 10px 0; width: 250px; text-align: center; }
+        input { padding: 15px; border-radius: 5px; border: none; font-size: 1.2rem; margin: 10px 0; width: 80%; text-align: center; }
         
         button {
             background: linear-gradient(to bottom, #e74c3c, #c0392b);
-            color: white; border: none; padding: 15px 30px;
-            font-size: 1.2rem; border-radius: 50px; cursor: pointer;
-            margin: 10px; font-weight: bold;
-            box-shadow: 0 4px 0 #922b21, 0 5px 10px rgba(0,0,0,0.3);
-            transition: transform 0.1s;
-            text-transform: uppercase;
+            color: white; border: none; padding: 12px 25px;
+            font-size: 1.1rem; border-radius: 50px; cursor: pointer;
+            margin: 5px; font-weight: bold;
+            box-shadow: 0 4px 0 #922b21;
+            transition: 0.1s;
         }
-        button:active { transform: translateY(4px); box-shadow: 0 0 0 #922b21; }
+        button:active { transform: translateY(4px); box-shadow: none; }
         button.secondary { background: linear-gradient(to bottom, #3498db, #2980b9); box-shadow: 0 4px 0 #1f618d; }
-        button.action-btn { font-size: 0.9rem; padding: 10px 15px; }
-
-        h1 { font-size: 3rem; color: var(--gold); text-shadow: 2px 2px 0 #000; margin-bottom: 0.5rem; letter-spacing: 2px; }
-
-        /* --- OYUN ALANI --- */
-        #game-header {
-            width: 100%; padding: 10px 20px; display: flex; justify-content: space-between; align-items: center;
-            background: rgba(0,0,0,0.3); box-sizing: border-box; height: 60px;
-        }
-
-        /* TOMBALA KARTI (Gerçekçi) */
-        .card-frame {
-            background: #fff;
-            padding: 10px;
-            border-radius: 8px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
-            width: 95%; max-width: 600px;
-            margin-top: 20px;
-            position: relative;
-        }
-        .card-row {
-            display: grid; grid-template-columns: repeat(9, 1fr);
-            border: 1px solid #333;
-        }
-        .card-row:not(:last-child) { border-bottom: none; }
         
+        /* OYUNCU HAZIR BUTONU */
+        #btn-player-ready {
+            background: var(--btn-ready); box-shadow: 0 4px 0 #1e8449;
+            width: 90%; padding: 15px; font-size: 1.3rem; margin-top: 10px;
+        }
+        #btn-player-ready:disabled {
+            background: var(--btn-wait); box-shadow: none; cursor: not-allowed; opacity: 0.7;
+        }
+
+        /* OYUN ALANI */
+        #game-header {
+            width: 100%; padding: 10px; display: flex; justify-content: space-between; align-items: center;
+            background: rgba(0,0,0,0.4); height: 50px; box-sizing: border-box;
+        }
+
+        .card-frame {
+            background: #fff; padding: 5px; border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.5); width: 95%; max-width: 500px; margin: 10px auto;
+        }
+        .card-row { display: grid; grid-template-columns: repeat(9, 1fr); border: 1px solid #333; }
         .cell {
-            aspect-ratio: 1;
-            display: flex; align-items: center; justify-content: center;
-            border-right: 1px solid #333;
-            font-size: 1.5rem; color: #333;
-            position: relative;
+            aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
+            border-right: 1px solid #333; font-size: 1.2rem; color: #333; position: relative;
             background: url('https://www.transparenttextures.com/patterns/cardboard.png');
         }
         .cell:last-child { border-right: none; }
-        .cell.empty { background: #e0e0e0; background-image: url("data:image/svg+xml,%3Csvg width='6' height='6' viewBox='0 0 6 6' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23999999' fill-opacity='0.2' fill-rule='evenodd'%3E%3Cpath d='M5 0h1L0 6V5zM6 5v1H5z'/%3E%3C/g%3E%3C/svg%3E"); }
+        .cell.empty { background: #ddd; }
         
-        /* PUL (Chip) */
         .chip {
-            position: absolute; width: 80%; height: 80%;
-            border-radius: 50%;
+            position: absolute; width: 80%; height: 80%; border-radius: 50%;
             background: radial-gradient(circle at 30% 30%, rgba(41, 128, 185, 0.9), rgba(21, 67, 96, 0.9));
-            box-shadow: 2px 2px 5px rgba(0,0,0,0.4);
-            display: none; pointer-events: none;
-            border: 2px solid rgba(255,255,255,0.3);
+            display: none; border: 2px solid rgba(255,255,255,0.3);
         }
-        .cell.marked .chip { display: block; animation: dropChip 0.2s ease-out; }
+        .cell.marked .chip { display: block; animation: drop 0.2s; }
+        @keyframes drop { 0% { transform: scale(3); opacity:0; } 100% { transform: scale(1); opacity:1; } }
 
-        @keyframes dropChip { 0% { transform: scale(3); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
-
-        /* HOST KONTROLLERİ */
-        .host-area {
-            display: flex; flex-direction: column; align-items: center; width: 100%; height: 100%; justify-content: flex-start; padding-top: 20px;
-        }
-        
-        /* Çekilen Taş */
+        /* HOST */
         .drawn-token {
-            width: 120px; height: 120px;
-            background: #f4d03f;
-            border-radius: 50%;
+            width: 120px; height: 120px; background: #f4d03f; border-radius: 50%;
             display: flex; align-items: center; justify-content: center;
-            font-size: 4rem; color: #3e2723;
-            border: 5px solid #b7950b;
-            box-shadow: inset 0 0 20px rgba(0,0,0,0.2), 0 10px 20px rgba(0,0,0,0.5);
-            margin-bottom: 20px;
-            font-family: 'Times New Roman', serif;
-            animation: spinPop 0.5s ease-out;
+            font-size: 4rem; color: #3e2723; border: 6px solid #b7950b;
+            margin: 20px auto; animation: pop 0.5s;
         }
-        @keyframes spinPop { 0% { transform: scale(0) rotate(-180deg); } 100% { transform: scale(1) rotate(0deg); } }
-
-        /* Master Board (1-90) */
-        .master-board {
-            display: grid; grid-template-columns: repeat(10, 1fr); gap: 4px;
-            background: rgba(0,0,0,0.3); padding: 10px; border-radius: 10px;
-            max-width: 500px;
-        }
-        .mb-cell {
-            width: 25px; height: 25px; background: rgba(255,255,255,0.1);
-            border-radius: 50%; display: flex; align-items: center; justify-content: center;
-            font-size: 0.7rem; color: #aaa;
-        }
-        .mb-cell.active { background: #f4d03f; color: #3e2723; font-weight: bold; box-shadow: 0 0 5px #f4d03f; transform: scale(1.1); }
-
-        /* BUTONLAR GRUBU */
-        .cinko-buttons {
-            display: flex; gap: 10px; margin-top: 20px;
-        }
+        @keyframes pop { 0% { transform: scale(0) rotate(-180deg); } 100% { transform: scale(1); } }
         
-        /* ELENME EKRANI */
-        .overlay {
-            position: fixed; top:0; left:0; width:100%; height:100%;
-            background: rgba(0,0,0,0.9); z-index: 100;
-            display: none; align-items: center; justify-content: center; flex-direction: column;
+        .ready-bar {
+            width: 80%; background: #333; height: 20px; border-radius: 10px; margin: 10px auto; overflow: hidden; position: relative;
         }
-        .fail-text { color: #c0392b; font-size: 4rem; font-weight: bold; text-shadow: 0 0 20px red; text-transform: uppercase; text-align: center;}
+        .ready-fill {
+            height: 100%; background: #27ae60; width: 0%; transition: width 0.3s;
+        }
+        .ready-text { position: absolute; width: 100%; text-align: center; top:0; font-size: 0.8rem; line-height: 20px; }
 
-        /* Responsive Fix */
-        @media (max-width: 600px) {
-            .cell { font-size: 1rem; }
-            .drawn-token { width: 80px; height: 80px; font-size: 2.5rem; }
-            .mb-cell { width: 18px; height: 18px; font-size: 0.5rem; }
-            h1 { font-size: 2rem; }
-        }
+        /* Master Board */
+        .master-board { display: grid; grid-template-columns: repeat(10, 1fr); gap: 2px; max-width: 400px; margin: 0 auto; }
+        .mb-cell { width: 20px; height: 20px; background: rgba(255,255,255,0.1); font-size: 0.6rem; display: flex; align-items: center; justify-content: center; border-radius: 3px;}
+        .mb-cell.active { background: #f4d03f; color: #000; font-weight: bold; }
+
+        /* Overlay */
+        .overlay { position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.95); z-index:100; display:none; flex-direction:column; align-items:center; justify-content:center; text-align: center; }
     </style>
 </head>
 <body>
 
     <div id="screen-login" class="screen active">
         <div class="panel">
-            <h1>TOMBALA</h1>
-            <p style="color:#ddd; margin-bottom: 20px;">Gerçekçi Yılbaşı Deneyimi</p>
-            <input type="text" id="username" placeholder="Adın (Örn: Mehmet)" maxlength="12">
+            <h1 style="margin:0; color:var(--gold);">🎄 TOMBALA 🎄</h1>
+            <p>Pro & Otomatik Mod</p>
+            <input type="text" id="username" placeholder="Adın nedir?">
             <br>
-            <button onclick="goToLobby()">Giriş Yap</button>
+            <button onclick="goToLobby()">Giriş</button>
         </div>
     </div>
 
     <div id="screen-lobby" class="screen">
         <div class="panel">
-            <h2>Merhaba, <span id="lobby-name" style="color:var(--gold)"></span></h2>
-            <hr style="border:0; border-top:1px solid #555; margin: 20px 0;">
-            
-            <div style="margin-bottom: 30px;">
-                <h3>👑 ODA KUR</h3>
-                <button onclick="createRoom()">Oluştur</button>
-            </div>
-            
-            <div>
-                <h3>🎫 ODAYA KATIL</h3>
-                <input type="number" id="join-code" placeholder="Oda Kodu (Örn: 12345)" style="width: 150px;">
-                <br>
-                <button class="secondary" onclick="joinRoom()">Katıl</button>
-            </div>
+            <h2>Hoşgeldin <span id="lobby-name" style="color:var(--gold)"></span></h2>
+            <button onclick="createRoom()">👑 Oda Kur</button>
+            <div style="margin:15px; border-bottom:1px solid #555;"></div>
+            <input type="number" id="join-code" placeholder="Oda Kodu">
+            <button class="secondary" onclick="joinRoom()">Katıl</button>
         </div>
     </div>
 
     <div id="screen-host-wait" class="screen">
         <div class="panel">
-            <h3>Oda Kodun:</h3>
-            <div style="font-size: 3rem; font-weight: bold; color: var(--gold); background: rgba(255,255,255,0.1); padding: 10px; border-radius: 10px; letter-spacing: 5px;" id="host-code-display">...</div>
-            <p>Arkadaşlarına bu kodu söyle.</p>
-            <div style="margin-top: 20px; text-align: left; width: 100%;">
-                Oyuncular:
-                <ul id="host-player-list" style="color: #4cd137;"></ul>
-            </div>
-            <button onclick="startGameHost()">OYUNU BAŞLAT</button>
+            <h3>Oda Kodu:</h3>
+            <div style="font-size:3rem; color:var(--gold); letter-spacing:5px;" id="host-code-display">...</div>
+            <p>Oyuncular:</p>
+            <ul id="host-player-list" style="list-style:none; padding:0; color:#2ecc71;"></ul>
+            <button onclick="startGameHost()">Başlat 🚀</button>
         </div>
     </div>
 
     <div id="screen-player-wait" class="screen">
         <div class="panel">
-            <h2 style="animation: pulse 1s infinite">Bekleniyor...</h2>
-            <p>Oda Sahibi oyunu başlattığında kartın masaya gelecek.</p>
+            <h2>Bekleniyor...</h2>
+            <p>Oda sahibi başlatınca oyun açılacak.</p>
         </div>
     </div>
 
     <div id="screen-game-host" class="screen">
-        <div id="game-header">
-            <span>Yönetici Paneli</span>
-            <span id="bag-count" style="color: var(--gold);">Torba: 90</span>
-        </div>
-        <div class="host-area">
+        <div id="game-header">Host Paneli <span id="bag-count">90</span></div>
+        <div style="flex:1; width:100%; text-align:center;">
             <div id="current-token" class="drawn-token">?</div>
             
-            <button onclick="drawNumber()" id="btn-draw" style="width: 200px;">TAŞ ÇEK</button>
+            <div class="ready-bar">
+                <div id="ready-fill" class="ready-fill"></div>
+                <div id="ready-text" class="ready-text">0/0 Hazır</div>
+            </div>
+
+            <button onclick="forceDraw()" id="btn-force" style="margin-top:10px;">Zorla Değiştir 🎲</button>
             
-            <div style="margin-top: 20px; color: #aaa; font-size: 0.9rem;">Çıkan Sayılar Tablosu:</div>
-            <div class="master-board" id="master-board">
-                </div>
+            <div style="margin-top:15px; font-size:0.8rem;">Çıkan Sayılar:</div>
+            <div class="master-board" id="master-board"></div>
         </div>
     </div>
 
     <div id="screen-game-player" class="screen">
         <div id="game-header">
-            <span id="room-info">Oda: 0000</span>
-            <span id="last-call" style="font-weight: bold; color: var(--gold); font-size: 1.2rem;">--</span>
+            <span id="room-info">Oda: --</span>
+            <span id="last-num" style="font-size:1.5rem; color:var(--gold); font-weight:bold;">--</span>
         </div>
-
+        
         <div style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; width:100%;">
+            <div class="card-frame" id="my-card"></div>
             
-            <div class="card-frame" id="my-card">
-                </div>
+            <button id="btn-player-ready" onclick="iAmReady()">HAZIRIM (Sıradaki) 👍</button>
 
-            <div class="cinko-buttons" id="claim-buttons">
-                <button class="action-btn" onclick="claimWin(1)">1. ÇİNKO</button>
-                <button class="action-btn" onclick="claimWin(2)">2. ÇİNKO</button>
-                <button class="action-btn secondary" onclick="claimWin(3)">TOMBALA!</button>
+            <div style="display:flex; margin-top:10px; gap:5px;">
+                <button class="action-btn" onclick="claimWin(1)">1.ÇİNKO</button>
+                <button class="action-btn" onclick="claimWin(2)">2.ÇİNKO</button>
+                <button class="action-btn secondary" onclick="claimWin(3)">TOMBALA</button>
             </div>
-            <p style="font-size: 0.8rem; color: #ccc; margin-top: 10px;">Dikkat: Yanlış basarsan elenirsin!</p>
         </div>
     </div>
 
-    <div id="screen-eliminated" class="overlay">
-        <div class="fail-text">ELENDİN!</div>
-        <p style="color: white; font-size: 1.5rem;">Çıkmayan taşa pul koydun.</p>
-        <button class="secondary" onclick="location.reload()">Ana Menü</button>
+    <div id="screen-fail" class="overlay">
+        <h1 style="color:red; font-size:4rem;">ELENDİN!</h1>
+        <p>Çıkmayan sayıya bastın.</p>
+        <button onclick="location.reload()">Çıkış</button>
     </div>
 
     <script>
         // --- DEĞİŞKENLER ---
         let peer = null;
-        let conn = null; // Player için
-        let connections = []; // Host için
+        let conn = null; 
+        let connections = []; // Host için oyuncu listesi
+        let readyStatus = {}; // {peerId: true/false}
+        
         let myName = "";
         let amIHost = false;
-        
         let bag = [];
-        let drawnNumbers = []; // Master liste
-        let myCardNumbers = []; // Oyuncu kart verisi
-        let myMarkedNumbers = []; // Oyuncunun bastıkları
-        let currentCinkoLevel = 0; // 0, 1, 2, 3
+        let drawnNumbers = [];
+        let myCardNumbers = [];
+        let currentCinkoLevel = 0;
 
-        // --- SES MOTORU (TTS) ---
-        function speakNumber(num) {
-            if ('speechSynthesis' in window) {
-                const msg = new SpeechSynthesisUtterance(num.toString());
-                msg.lang = 'tr-TR';
-                msg.rate = 0.9;
-                window.speechSynthesis.speak(msg);
+        // --- SES ---
+        function speak(num) {
+            if('speechSynthesis' in window){
+                const u = new SpeechSynthesisUtterance(num);
+                u.lang='tr-TR'; u.rate=1; window.speechSynthesis.speak(u);
             }
         }
 
-        // --- NAVİGASYON ---
-        function show(id) {
-            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-            document.getElementById(id).classList.add('active');
+        // --- NAV ---
+        function show(id){ document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active')); document.getElementById(id).classList.add('active'); }
+        function goToLobby(){ 
+            const n = document.getElementById('username').value.trim();
+            if(!n) return alert("İsim gir!");
+            myName = n; document.getElementById('lobby-name').innerText=n; show('screen-lobby');
         }
 
-        function goToLobby() {
-            const val = document.getElementById('username').value.trim();
-            if(!val) return alert("İsim yazmalısın!");
-            myName = val;
-            document.getElementById('lobby-name').innerText = myName;
-            show('screen-lobby');
-        }
-
-        // --- HOST İŞLEMLERİ ---
-        function createRoom() {
+        // --- HOST LOGIC ---
+        function createRoom(){
             amIHost = true;
-            const code = Math.floor(1000 + Math.random() * 9000); // 4 haneli kod
-            
-            peer = new Peer('tombala-pro-' + code);
-            
-            peer.on('open', () => {
-                document.getElementById('host-code-display').innerText = code;
+            const code = Math.floor(1000 + Math.random()*9000);
+            peer = new Peer('tombala-auto-'+code);
+            peer.on('open', ()=>{
+                document.getElementById('host-code-display').innerText=code;
                 show('screen-host-wait');
-                initMasterBoard();
+                initBoard();
             });
-
-            peer.on('connection', (c) => {
+            peer.on('connection', c=>{
                 connections.push(c);
-                c.on('data', handleDataFromPlayer);
-                c.on('open', () => {
-                    // Oyuncu listesini güncelle
+                readyStatus[c.peer] = false; // Başlangıçta hazır değil
+                c.on('data', d => handleHostData(c, d));
+                c.on('close', () => {
+                    connections = connections.filter(x => x.peer !== c.peer);
+                    delete readyStatus[c.peer];
+                    updateReadyUI(); // Biri düşerse sayıyı güncelle
                 });
             });
-
-            peer.on('error', (err) => alert("Hata: Kod dolu olabilir, tekrar dene."));
+            peer.on('error', ()=>alert("Hata: Kod dolu."));
         }
 
-        function initMasterBoard() {
-            const board = document.getElementById('master-board');
-            board.innerHTML = '';
-            for(let i=1; i<=90; i++) {
-                const d = document.createElement('div');
-                d.className = 'mb-cell';
-                d.id = 'mb-' + i;
-                d.innerText = i;
-                board.appendChild(d);
+        function initBoard(){
+            const b = document.getElementById('master-board'); b.innerHTML='';
+            for(let i=1; i<=90; i++){
+                const d=document.createElement('div'); d.className='mb-cell'; d.id='mb-'+i; d.innerText=i; b.appendChild(d);
             }
-            // Torbayı doldur
-            bag = Array.from({length: 90}, (_, i) => i + 1);
+            bag = Array.from({length:90}, (_,i)=>i+1);
         }
 
-        function startGameHost() {
-            if(connections.length === 0) {
-                if(!confirm("Kimse bağlanmadı, yine de tek başına test etmek istiyor musun?")) return;
-            }
+        function startGameHost(){
             show('screen-game-host');
-            broadcast({ type: 'START' });
+            broadcast({type:'START'});
+            setTimeout(drawNumber, 1000); // 1sn sonra ilk sayı
         }
 
-        function drawNumber() {
-            if(bag.length === 0) return alert("Torba boş!");
-            
-            const rndIdx = Math.floor(Math.random() * bag.length);
-            const num = bag[rndIdx];
-            bag.splice(rndIdx, 1);
-            drawnNumbers.push(num);
-
-            // Host UI güncelle
-            const tokenDisp = document.getElementById('current-token');
-            tokenDisp.style.animation = 'none';
-            tokenDisp.offsetHeight; /* trigger reflow */
-            tokenDisp.style.animation = 'spinPop 0.5s ease-out';
-            tokenDisp.innerText = num;
-            
-            document.getElementById('bag-count').innerText = "Torba: " + bag.length;
-            document.getElementById('mb-' + num).classList.add('active');
-
-            // Sesli oku (Host cihazında)
-            speakNumber(num);
-
-            // Oyunculara gönder
-            broadcast({ type: 'NUMBER', value: num });
-        }
-
-        function broadcast(msg) {
-            connections.forEach(c => c.send(msg));
-        }
-
-        function handleDataFromPlayer(data) {
-            if(data.type === 'JOIN') {
-                const ul = document.getElementById('host-player-list');
-                const li = document.createElement('li');
-                li.innerText = data.name;
-                ul.appendChild(li);
+        function handleHostData(conn, data){
+            if(data.type==='JOIN'){
+                const li=document.createElement('li'); li.innerText=data.name; 
+                document.getElementById('host-player-list').appendChild(li);
+                conn.playerName = data.name;
             }
-            else if(data.type === 'CLAIM') {
-                // Oyuncu Çinko/Tombala iddia ediyor
-                const playerChecks = data.checks; // Oyuncunun işaretledikleri
-                const claimedLevel = data.level; // 1, 2 veya 3
-                const pName = data.name;
-
-                // DOĞRULAMA (CHEAT PROTECTION)
-                // Oyuncunun 'çinko yaptım' dediği satırdaki sayılar, 'drawnNumbers' içinde var mı?
-                let isValid = true;
-                
-                // Gelen data.rowNumbers oyuncunun o satırdaki sayılarıdır
-                const rowNumbers = data.rowNumbers; 
-                
-                rowNumbers.forEach(n => {
-                    if(!drawnNumbers.includes(n)) isValid = false;
-                });
-
-                // Yanıt gönder
-                const targetConn = connections.find(c => c.peer === data.peerId); // Basit eşleşme varsayımı
-                
-                if(isValid) {
-                    // Herkese duyur
-                    let title = "";
-                    if(claimedLevel === 1) title = "1. ÇİNKO";
-                    else if(claimedLevel === 2) title = "2. ÇİNKO";
-                    else title = "TOMBALA";
-                    
-                    broadcast({ type: 'ANNOUNCE_WIN', msg: `${pName} ${title} YAPTI! 🎉` });
-                    // Konfeti patlat (Hostta)
+            if(data.type==='READY'){
+                readyStatus[conn.peer] = true;
+                updateReadyUI();
+                checkAllReady();
+            }
+            if(data.type==='CLAIM'){
+                // Hile Kontrol
+                let valid = data.rows.every(n => drawnNumbers.includes(n));
+                if(valid){
+                    broadcast({type:'WIN', msg: data.name + " " + data.lvl + " YAPTI! 🎉"});
                     confetti();
                 } else {
-                    // Sadece o kişiye elendin de
-                    // (Not: PeerJS connection bulma karmaşık olabilir, basitleştirilmiş broadcast yapıyoruz)
-                    // Hileciyi ifşa et
-                    broadcast({ type: 'ANNOUNCE_FAIL', name: pName });
+                    conn.send({type:'FAIL'}); // Sadece ona
+                    broadcast({type:'WIN', msg: "⚠️ " + data.name + " YANLIŞ BASTI VE ELENDİ!"});
                 }
             }
         }
 
+        function updateReadyUI(){
+            const total = connections.length;
+            const readyCount = Object.values(readyStatus).filter(x=>x).length;
+            const pct = total === 0 ? 0 : (readyCount / total) * 100;
+            
+            document.getElementById('ready-fill').style.width = pct + "%";
+            document.getElementById('ready-text').innerText = `${readyCount}/${total} Hazır`;
+        }
 
-        // --- OYUNCU İŞLEMLERİ ---
-        function joinRoom() {
+        function checkAllReady(){
+            if(connections.length === 0) return;
+            const allReady = Object.values(readyStatus).every(x=>x === true);
+            // Eğer herkes hazırsa ve en az 1 oyuncu varsa
+            if(allReady && connections.length > 0){
+                setTimeout(drawNumber, 500); // Yarım saniye bekle ve çek
+            }
+        }
+
+        function drawNumber(){
+            if(bag.length===0) return alert("Oyun Bitti");
+            const idx = Math.floor(Math.random()*bag.length);
+            const num = bag[idx];
+            bag.splice(idx,1);
+            drawnNumbers.push(num);
+
+            // UI Host
+            document.getElementById('current-token').innerText = num;
+            document.getElementById('mb-'+num).classList.add('active');
+            document.getElementById('bag-count').innerText = bag.length;
+            speak(num);
+
+            // Reset Ready Status
+            connections.forEach(c => readyStatus[c.peer] = false);
+            updateReadyUI();
+
+            // Send to players
+            broadcast({type:'NUMBER', val:num});
+        }
+        
+        function forceDraw(){
+            if(confirm("Herkes hazır değil. Yine de çekilsin mi?")) drawNumber();
+        }
+
+        function broadcast(msg){ connections.forEach(c=>c.send(msg)); }
+
+        // --- PLAYER LOGIC ---
+        function joinRoom(){
             const code = document.getElementById('join-code').value;
-            if(!code) return alert("Kod gir!");
-            
+            if(!code) return alert("Kod gir");
             amIHost = false;
-            peer = new Peer(); // Auto ID
-            
-            peer.on('open', (id) => {
-                conn = peer.connect('tombala-pro-' + code);
-                
-                conn.on('open', () => {
+            peer = new Peer();
+            peer.on('open', id=>{
+                conn = peer.connect('tombala-auto-'+code);
+                conn.on('open', ()=>{
                     show('screen-player-wait');
-                    conn.send({ type: 'JOIN', name: myName });
+                    conn.send({type:'JOIN', name:myName});
                 });
-
-                conn.on('data', (data) => {
-                    if(data.type === 'START') {
-                        generateCard();
-                        show('screen-game-player');
-                        document.getElementById('room-info').innerText = "Oda: " + code;
-                    }
-                    if(data.type === 'NUMBER') {
-                        document.getElementById('last-call').innerText = "Son Sayı: " + data.value;
-                        speakNumber(data.value); // Oyuncu cihazında da oku
-                    }
-                    if(data.type === 'ANNOUNCE_WIN') {
-                        alert(data.msg);
-                        confetti();
-                    }
-                    if(data.type === 'ANNOUNCE_FAIL') {
-                        if(data.name === myName) {
-                            // Ben elendim
-                            document.getElementById('screen-eliminated').style.display = 'flex';
-                        } else {
-                            alert(data.name + " YANLIŞ BASTI VE ELENDİ! 😱");
-                        }
-                    }
-                });
-                
-                conn.on('error', () => alert("Bağlantı hatası."));
+                conn.on('data', handlePlayerData);
+                conn.on('close', ()=>alert("Host ayrıldı."));
             });
         }
 
-        // --- KART MANTIĞI & ETKİLEŞİM ---
-        function generateCard() {
-            // Gerçekçi Tombala Kartı Algoritması
-            // Her sütun belirli aralığa sahip olmalı (Col 0: 1-9, Col 1: 10-19...)
-            const container = document.getElementById('my-card');
-            container.innerHTML = '';
-            myCardNumbers = []; // 3 satır, her satırda 9 eleman (null veya sayı)
+        function handlePlayerData(data){
+            if(data.type==='START'){
+                generateCard();
+                show('screen-game-player');
+            }
+            if(data.type==='NUMBER'){
+                document.getElementById('last-num').innerText = data.val;
+                speak(data.val);
+                // Yeni sayı geldi, butonu aktif et
+                const btn = document.getElementById('btn-player-ready');
+                btn.disabled = false;
+                btn.innerText = "HAZIRIM (Sıradaki) 👍";
+                btn.style.background = "#27ae60";
+            }
+            if(data.type==='WIN') { alert(data.msg); confetti(); }
+            if(data.type==='FAIL') { document.getElementById('screen-fail').style.display='flex'; }
+        }
 
-            // 3 satır oluştur
-            for(let r=0; r<3; r++) {
-                // Her satır 9 hücre, 5 sayı, 4 boşluk
-                let rowData = Array(9).fill(null);
-                
-                // Rastgele 5 sütun seç
+        function iAmReady(){
+            // Butonu pasife çek
+            const btn = document.getElementById('btn-player-ready');
+            btn.disabled = true;
+            btn.innerText = "Diğerleri Bekleniyor... ⏳";
+            btn.style.background = "#95a5a6";
+            
+            conn.send({type:'READY'});
+        }
+
+        function generateCard(){
+            const c = document.getElementById('my-card'); c.innerHTML='';
+            myCardNumbers = [];
+            for(let r=0; r<3; r++){
+                let row = Array(9).fill(null);
                 let cols = [];
-                while(cols.length < 5) {
-                    let c = Math.floor(Math.random() * 9);
-                    if(!cols.includes(c)) cols.push(c);
+                while(cols.length<5){
+                    let x = Math.floor(Math.random()*9); if(!cols.includes(x)) cols.push(x);
                 }
-                
-                // Seçilen sütunlara uygun sayıları ata
-                cols.forEach(c => {
-                    // Sütun aralığı: c=0 -> 1-9, c=1 -> 10-19 ... c=8 -> 80-90
-                    let min = c * 10;
-                    let max = (c * 10) + 9;
-                    if(c === 0) min = 1;
-                    if(c === 8) max = 90;
-                    
-                    let num;
-                    let attempts = 0;
-                    do {
-                        num = Math.floor(Math.random() * (max - min + 1)) + min;
-                        // Kart genelinde benzersiz mi?
-                        attempts++;
-                    } while (checkIfExistsInCard(num) && attempts < 100);
-                    
-                    rowData[c] = num;
+                cols.forEach(col=>{
+                    let min = col===0?1:col*10; let max=col===8?90:(col*10)+9;
+                    let n; 
+                    do{ n = Math.floor(Math.random()*(max-min+1))+min; } while(myCardNumbers.flat().includes(n));
+                    row[col]=n;
                 });
-                
-                myCardNumbers.push(rowData);
-                
-                // HTML Render
-                const rowDiv = document.createElement('div');
-                rowDiv.className = 'card-row';
-                
-                for(let c=0; c<9; c++) {
-                    const cell = document.createElement('div');
-                    const val = rowData[c];
-                    
-                    if(val === null) {
-                        cell.className = 'cell empty';
-                    } else {
-                        cell.className = 'cell';
-                        cell.innerText = val;
-                        
-                        // Pul Ekle
-                        const chip = document.createElement('div');
-                        chip.className = 'chip';
-                        cell.appendChild(chip);
+                myCardNumbers.push(row);
 
-                        // Tıklama Olayı (Manuel İşaretleme)
-                        cell.onclick = () => {
-                            // Class toggle
-                            if(cell.classList.contains('marked')) {
-                                cell.classList.remove('marked');
-                            } else {
-                                cell.classList.add('marked');
-                            }
+                // HTML
+                const rd = document.createElement('div'); rd.className='card-row';
+                row.forEach(val=>{
+                    const cell = document.createElement('div');
+                    if(val===null) cell.className='cell empty';
+                    else {
+                        cell.className='cell'; cell.innerText=val;
+                        const ch = document.createElement('div'); ch.className='chip'; cell.appendChild(ch);
+                        cell.onclick=()=>{
+                            cell.classList.toggle('marked');
                         };
                     }
-                    rowDiv.appendChild(cell);
-                }
-                container.appendChild(rowDiv);
+                    rd.appendChild(cell);
+                });
+                c.appendChild(rd);
             }
         }
 
-        function checkIfExistsInCard(num) {
-            return myCardNumbers.some(row => row.includes(num));
-        }
-
-        // --- KAZANMA İDDİASI (CLAIM) ---
-        function claimWin(level) {
-            // Level 1: 1. Çinko, Level 3: Tombala
-            if(level <= currentCinkoLevel) return alert("Bu ödülü zaten aldın veya geçtin!");
-            if(level > currentCinkoLevel + 1) return alert("Sırayla gitmelisin! Önce 1. Çinko.");
-
-            // Hangi satır tamamlandı kontrol et
-            // DOM'dan kontrol etmek yerine myCardNumbers verisinden kontrol edelim
-            // Ama hangisine 'marked' basıldığını DOM'dan anlamalıyız.
-            
-            const rowDivs = document.querySelectorAll('.card-row');
-            let potentialRows = [];
-
-            rowDivs.forEach((rDiv, rIndex) => {
-                const markedCells = rDiv.querySelectorAll('.cell.marked');
-                if(markedCells.length === 5) {
-                    // Bu satır tamamlanmış görünüyor, sayıları al
-                    let nums = [];
-                    markedCells.forEach(cell => nums.push(parseInt(cell.innerText)));
-                    potentialRows.push(nums);
+        function claimWin(lvl){
+            if(lvl <= currentCinkoLevel) return alert("Bunu zaten aldın!");
+            // Check rows locally simply to gather numbers
+            const rows = document.querySelectorAll('.card-row');
+            let markedNums = [];
+            rows.forEach(r=>{
+                if(r.querySelectorAll('.cell.marked').length===5){
+                    r.querySelectorAll('.cell.marked').forEach(c=>markedNums.push(parseInt(c.innerText)));
                 }
             });
-
-            if(potentialRows.length === 0) {
-                return alert("Henüz tamamlanmış bir satırın yok (5 pul gerekli)!");
-            }
+            if(markedNums.length===0) return alert("Tamamlanmış satır yok!");
             
-            // Eğer oyuncunun iddia ettiği kadar satır varsa Host'a gönder
-            if(potentialRows.length >= level) {
-                 // Basitlik için sadece son tamamlanan satırı veya tümünü gönderip hosta check ettirelim.
-                 // Biz en son tamamlanan satırın sayılarını gönderelim hile kontrolü için
-                 // Tombala için tüm sayıları birleştirip yolla
-                 let allMarkedNums = potentialRows.flat();
-                 
-                 conn.send({
-                     type: 'CLAIM',
-                     name: myName,
-                     level: level,
-                     rowNumbers: allMarkedNums,
-                     peerId: peer.id
-                 });
-                 
-                 // Başarılı olursa host geri dönecek, o yüzden burada leveli artırma
-                 // Sadece bekleme
-            } else {
-                alert("Yeterli satır tamamlanmamış!");
-            }
+            conn.send({type:'CLAIM', rows:markedNums, lvl:lvl, name:myName});
         }
-        
-        // Hosttan onay gelirse leveli artıracak bir dinleyici eklenebilir ama
-        // bu versiyonda basit tutmak için broadcast dinliyoruz.
-        
     </script>
 </body>
 </html>
