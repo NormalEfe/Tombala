@@ -3,17 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Pro Yılbaşı Tombalası (Otomatik)</title>
+    <title>Yılbaşı Tombalası</title>
     <script src="https://unpkg.com/peerjs@1.5.1/dist/peerjs.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@700&display=swap" rel="stylesheet">
     <style>
         :root {
             --felt-green: #0b4625;
-            --wood-dark: #3e2723;
             --gold: #ffd700;
             --btn-ready: #27ae60;
-            --btn-wait: #95a5a6;
+            --btn-wait: #7f8c8d;
+            --host-panel-bg: rgba(0, 0, 0, 0.5);
         }
 
         body {
@@ -29,26 +29,27 @@
             user-select: none;
         }
 
-        /* Arayüz */
+        /* --- ARAYÜZ --- */
         .screen { display: none; height: 100%; width: 100%; flex-direction: column; align-items: center; justify-content: center; position: absolute; top:0; left:0; }
         .screen.active { display: flex; z-index: 10; }
 
         .panel {
-            background: rgba(0, 0, 0, 0.7);
+            background: rgba(0, 0, 0, 0.8);
             padding: 2rem;
             border-radius: 15px;
             border: 2px solid var(--gold);
             text-align: center;
             backdrop-filter: blur(5px);
             width: 90%; max-width: 400px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
         }
 
         input { padding: 15px; border-radius: 5px; border: none; font-size: 1.2rem; margin: 10px 0; width: 80%; text-align: center; }
         
         button {
             background: linear-gradient(to bottom, #e74c3c, #c0392b);
-            color: white; border: none; padding: 12px 25px;
-            font-size: 1.1rem; border-radius: 50px; cursor: pointer;
+            color: white; border: none; padding: 12px 20px;
+            font-size: 1rem; border-radius: 50px; cursor: pointer;
             margin: 5px; font-weight: bold;
             box-shadow: 0 4px 0 #922b21;
             transition: 0.1s;
@@ -62,15 +63,30 @@
             width: 90%; padding: 15px; font-size: 1.3rem; margin-top: 10px;
         }
         #btn-player-ready:disabled {
-            background: var(--btn-wait); box-shadow: none; cursor: not-allowed; opacity: 0.7;
+            background: var(--btn-wait); box-shadow: none; cursor: not-allowed; opacity: 0.8; color: #ddd;
         }
 
-        /* OYUN ALANI */
+        /* OYUN EKRANI */
         #game-header {
-            width: 100%; padding: 10px; display: flex; justify-content: space-between; align-items: center;
+            width: 100%; padding: 5px 15px; display: flex; justify-content: space-between; align-items: center;
             background: rgba(0,0,0,0.4); height: 50px; box-sizing: border-box;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
         }
 
+        /* Host Özel Alanı */
+        #host-controls-area {
+            display: none; /* Sadece host görecek */
+            width: 100%; background: var(--host-panel-bg);
+            padding: 5px; box-sizing: border-box;
+            border-bottom: 1px dashed #555;
+            text-align: center;
+        }
+        .ready-bar {
+            width: 90%; background: #333; height: 10px; border-radius: 5px; margin: 5px auto; overflow: hidden;
+        }
+        .ready-fill { height: 100%; background: #2ecc71; width: 0%; transition: width 0.3s; }
+
+        /* KART */
         .card-frame {
             background: #fff; padding: 5px; border-radius: 8px;
             box-shadow: 0 5px 15px rgba(0,0,0,0.5); width: 95%; max-width: 500px; margin: 10px auto;
@@ -78,41 +94,27 @@
         .card-row { display: grid; grid-template-columns: repeat(9, 1fr); border: 1px solid #333; }
         .cell {
             aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
-            border-right: 1px solid #333; font-size: 1.2rem; color: #333; position: relative;
+            border-right: 1px solid #333; font-size: 1.1rem; color: #333; position: relative;
             background: url('https://www.transparenttextures.com/patterns/cardboard.png');
         }
         .cell:last-child { border-right: none; }
         .cell.empty { background: #ddd; }
         
         .chip {
-            position: absolute; width: 80%; height: 80%; border-radius: 50%;
+            position: absolute; width: 85%; height: 85%; border-radius: 50%;
             background: radial-gradient(circle at 30% 30%, rgba(41, 128, 185, 0.9), rgba(21, 67, 96, 0.9));
-            display: none; border: 2px solid rgba(255,255,255,0.3);
+            display: none; border: 2px solid rgba(255,255,255,0.3); box-shadow: 2px 2px 5px rgba(0,0,0,0.3);
         }
         .cell.marked .chip { display: block; animation: drop 0.2s; }
         @keyframes drop { 0% { transform: scale(3); opacity:0; } 100% { transform: scale(1); opacity:1; } }
 
-        /* HOST */
-        .drawn-token {
-            width: 120px; height: 120px; background: #f4d03f; border-radius: 50%;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 4rem; color: #3e2723; border: 6px solid #b7950b;
-            margin: 20px auto; animation: pop 0.5s;
+        /* Master Board (Host için altta minik) */
+        #master-board {
+            display: none; grid-template-columns: repeat(15, 1fr); gap: 2px; 
+            margin: 5px auto; max-width: 95%; opacity: 0.7;
         }
-        @keyframes pop { 0% { transform: scale(0) rotate(-180deg); } 100% { transform: scale(1); } }
-        
-        .ready-bar {
-            width: 80%; background: #333; height: 20px; border-radius: 10px; margin: 10px auto; overflow: hidden; position: relative;
-        }
-        .ready-fill {
-            height: 100%; background: #27ae60; width: 0%; transition: width 0.3s;
-        }
-        .ready-text { position: absolute; width: 100%; text-align: center; top:0; font-size: 0.8rem; line-height: 20px; }
-
-        /* Master Board */
-        .master-board { display: grid; grid-template-columns: repeat(10, 1fr); gap: 2px; max-width: 400px; margin: 0 auto; }
-        .mb-cell { width: 20px; height: 20px; background: rgba(255,255,255,0.1); font-size: 0.6rem; display: flex; align-items: center; justify-content: center; border-radius: 3px;}
-        .mb-cell.active { background: #f4d03f; color: #000; font-weight: bold; }
+        .mb-cell { width: 100%; aspect-ratio: 1; background: rgba(255,255,255,0.1); font-size: 0.5rem; display: flex; align-items: center; justify-content: center; border-radius: 2px;}
+        .mb-cell.active { background: var(--gold); color: #000; font-weight: bold; }
 
         /* Overlay */
         .overlay { position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.95); z-index:100; display:none; flex-direction:column; align-items:center; justify-content:center; text-align: center; }
@@ -122,8 +124,8 @@
 
     <div id="screen-login" class="screen active">
         <div class="panel">
-            <h1 style="margin:0; color:var(--gold);">🎄 TOMBALA 🎄</h1>
-            <p>Pro & Otomatik Mod</p>
+            <h1 style="margin:0; color:var(--gold);">🎄 TOMBALA 2025</h1>
+            <p>Herkes Oynuyor Modu</p>
             <input type="text" id="username" placeholder="Adın nedir?">
             <br>
             <button onclick="goToLobby()">Giriş</button>
@@ -144,43 +146,42 @@
         <div class="panel">
             <h3>Oda Kodu:</h3>
             <div style="font-size:3rem; color:var(--gold); letter-spacing:5px;" id="host-code-display">...</div>
-            <p>Oyuncular:</p>
+            <p>Bağlananlar:</p>
             <ul id="host-player-list" style="list-style:none; padding:0; color:#2ecc71;"></ul>
-            <button onclick="startGameHost()">Başlat 🚀</button>
+            <button onclick="startGame()">Herkes Geldiyse BAŞLA 🚀</button>
         </div>
     </div>
 
     <div id="screen-player-wait" class="screen">
         <div class="panel">
             <h2>Bekleniyor...</h2>
-            <p>Oda sahibi başlatınca oyun açılacak.</p>
+            <p>Oda sahibi oyunu başlatınca kartın görünecek.</p>
         </div>
     </div>
 
-    <div id="screen-game-host" class="screen">
-        <div id="game-header">Host Paneli <span id="bag-count">90</span></div>
-        <div style="flex:1; width:100%; text-align:center;">
-            <div id="current-token" class="drawn-token">?</div>
-            
-            <div class="ready-bar">
-                <div id="ready-fill" class="ready-fill"></div>
-                <div id="ready-text" class="ready-text">0/0 Hazır</div>
-            </div>
-
-            <button onclick="forceDraw()" id="btn-force" style="margin-top:10px;">Zorla Değiştir 🎲</button>
-            
-            <div style="margin-top:15px; font-size:0.8rem;">Çıkan Sayılar:</div>
-            <div class="master-board" id="master-board"></div>
-        </div>
-    </div>
-
-    <div id="screen-game-player" class="screen">
+    <div id="screen-game" class="screen">
+        
         <div id="game-header">
             <span id="room-info">Oda: --</span>
-            <span id="last-num" style="font-size:1.5rem; color:var(--gold); font-weight:bold;">--</span>
+            <div style="text-align: right;">
+                <span style="font-size:0.7rem; display:block;">SON SAYI</span>
+                <span id="last-num" style="font-size:1.5rem; color:var(--gold); font-weight:bold;">--</span>
+            </div>
+        </div>
+
+        <div id="host-controls-area">
+            <div style="display:flex; justify-content: space-between; align-items: center; padding: 0 10px;">
+                <span style="font-size:0.8rem;">Yönetici Paneli</span>
+                <button onclick="forceDraw()" style="font-size:0.8rem; padding: 5px 10px; background:#e67e22;">⚠️ Zorla Çek</button>
+            </div>
+            <div class="ready-bar">
+                <div id="ready-fill" class="ready-fill"></div>
+            </div>
+            <div style="font-size:0.7rem; color:#aaa;" id="ready-text">0/0 Hazır</div>
         </div>
         
         <div style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; width:100%;">
+            
             <div class="card-frame" id="my-card"></div>
             
             <button id="btn-player-ready" onclick="iAmReady()">HAZIRIM (Sıradaki) 👍</button>
@@ -190,6 +191,8 @@
                 <button class="action-btn" onclick="claimWin(2)">2.ÇİNKO</button>
                 <button class="action-btn secondary" onclick="claimWin(3)">TOMBALA</button>
             </div>
+
+            <div id="master-board"></div>
         </div>
     </div>
 
@@ -202,9 +205,9 @@
     <script>
         // --- DEĞİŞKENLER ---
         let peer = null;
-        let conn = null; 
+        let conn = null; // Player için host bağlantısı
         let connections = []; // Host için oyuncu listesi
-        let readyStatus = {}; // {peerId: true/false}
+        let readyStatus = {}; // {peerId: true/false} (Host için özel key: 'HOST')
         
         let myName = "";
         let amIHost = false;
@@ -212,6 +215,7 @@
         let drawnNumbers = [];
         let myCardNumbers = [];
         let currentCinkoLevel = 0;
+        let hostReady = false; // Hostun kendi hazır durumu
 
         // --- SES ---
         function speak(num) {
@@ -221,7 +225,7 @@
             }
         }
 
-        // --- NAV ---
+        // --- EKRAN YÖNETİMİ ---
         function show(id){ document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active')); document.getElementById(id).classList.add('active'); }
         function goToLobby(){ 
             const n = document.getElementById('username').value.trim();
@@ -229,24 +233,29 @@
             myName = n; document.getElementById('lobby-name').innerText=n; show('screen-lobby');
         }
 
-        // --- HOST LOGIC ---
+        // --- HOST MANTIĞI ---
         function createRoom(){
             amIHost = true;
             const code = Math.floor(1000 + Math.random()*9000);
-            peer = new Peer('tombala-auto-'+code);
+            peer = new Peer('tombala-final-'+code);
             peer.on('open', ()=>{
                 document.getElementById('host-code-display').innerText=code;
                 show('screen-host-wait');
                 initBoard();
+                
+                // Host listeye kendini de eklesin görsel olarak
+                const li=document.createElement('li'); li.innerText=myName + " (Sen)"; 
+                document.getElementById('host-player-list').appendChild(li);
             });
+            
             peer.on('connection', c=>{
                 connections.push(c);
-                readyStatus[c.peer] = false; // Başlangıçta hazır değil
+                readyStatus[c.peer] = false;
                 c.on('data', d => handleHostData(c, d));
                 c.on('close', () => {
                     connections = connections.filter(x => x.peer !== c.peer);
                     delete readyStatus[c.peer];
-                    updateReadyUI(); // Biri düşerse sayıyı güncelle
+                    updateReadyUI();
                 });
             });
             peer.on('error', ()=>alert("Hata: Kod dolu."));
@@ -260,12 +269,24 @@
             bag = Array.from({length:90}, (_,i)=>i+1);
         }
 
-        function startGameHost(){
-            show('screen-game-host');
+        function startGame(){
+            // Host olarak oyunu başlat
+            show('screen-game');
+            // Host arayüzünü aç
+            document.getElementById('host-controls-area').style.display = 'block';
+            document.getElementById('master-board').style.display = 'grid';
+            document.getElementById('room-info').innerText = "Yönetici";
+            
+            // Host Kartını Oluştur
+            generateCard();
+            
+            // Oyunculara Başlat Komutu Ver
             broadcast({type:'START'});
-            setTimeout(drawNumber, 1000); // 1sn sonra ilk sayı
+            
+            setTimeout(drawNumber, 1500); // Biraz bekle ilk sayı gelsin
         }
 
+        // Hostun veri işlemesi (Oyunculardan gelen)
         function handleHostData(conn, data){
             if(data.type==='JOIN'){
                 const li=document.createElement('li'); li.innerText=data.name; 
@@ -278,33 +299,44 @@
                 checkAllReady();
             }
             if(data.type==='CLAIM'){
-                // Hile Kontrol
+                // Hile Kontrolü
                 let valid = data.rows.every(n => drawnNumbers.includes(n));
                 if(valid){
                     broadcast({type:'WIN', msg: data.name + " " + data.lvl + " YAPTI! 🎉"});
                     confetti();
                 } else {
                     conn.send({type:'FAIL'}); // Sadece ona
-                    broadcast({type:'WIN', msg: "⚠️ " + data.name + " YANLIŞ BASTI VE ELENDİ!"});
+                    broadcast({type:'WIN', msg: "☠️ " + data.name + " YANLIŞ BASTI VE ELENDİ!"});
                 }
             }
         }
 
-        function updateReadyUI(){
-            const total = connections.length;
-            const readyCount = Object.values(readyStatus).filter(x=>x).length;
-            const pct = total === 0 ? 0 : (readyCount / total) * 100;
+        // Hostun kendi hazır olma durumu
+        function iAmReadyHost(){
+            hostReady = true;
+            const btn = document.getElementById('btn-player-ready');
+            btn.disabled = true;
+            btn.innerText = "Diğerleri Bekleniyor... ⏳";
             
+            updateReadyUI();
+            checkAllReady();
+        }
+
+        function updateReadyUI(){
+            // Host + Oyuncular
+            const total = connections.length + 1; 
+            const readyCount = Object.values(readyStatus).filter(x=>x).length + (hostReady ? 1 : 0);
+            
+            const pct = (readyCount / total) * 100;
             document.getElementById('ready-fill').style.width = pct + "%";
             document.getElementById('ready-text').innerText = `${readyCount}/${total} Hazır`;
         }
 
         function checkAllReady(){
-            if(connections.length === 0) return;
-            const allReady = Object.values(readyStatus).every(x=>x === true);
-            // Eğer herkes hazırsa ve en az 1 oyuncu varsa
-            if(allReady && connections.length > 0){
-                setTimeout(drawNumber, 500); // Yarım saniye bekle ve çek
+            const allPeersReady = Object.values(readyStatus).every(x=>x === true);
+            // Host da hazırsa ve herkes hazırsa
+            if(hostReady && allPeersReady){
+                setTimeout(drawNumber, 500);
             }
         }
 
@@ -315,17 +347,23 @@
             bag.splice(idx,1);
             drawnNumbers.push(num);
 
-            // UI Host
-            document.getElementById('current-token').innerText = num;
+            // HOST İÇİN GÜNCELLEME
+            document.getElementById('last-num').innerText = num;
             document.getElementById('mb-'+num).classList.add('active');
-            document.getElementById('bag-count').innerText = bag.length;
             speak(num);
 
-            // Reset Ready Status
+            // Host Butonunu Sıfırla
+            hostReady = false;
+            const btn = document.getElementById('btn-player-ready');
+            btn.disabled = false;
+            btn.innerText = "HAZIRIM (Sıradaki) 👍";
+            btn.style.background = "#27ae60";
+
+            // Oyuncuları Sıfırla
             connections.forEach(c => readyStatus[c.peer] = false);
             updateReadyUI();
 
-            // Send to players
+            // Oyunculara Gönder
             broadcast({type:'NUMBER', val:num});
         }
         
@@ -335,14 +373,15 @@
 
         function broadcast(msg){ connections.forEach(c=>c.send(msg)); }
 
-        // --- PLAYER LOGIC ---
+
+        // --- OYUNCU (PLAYER) MANTIĞI ---
         function joinRoom(){
             const code = document.getElementById('join-code').value;
             if(!code) return alert("Kod gir");
             amIHost = false;
             peer = new Peer();
             peer.on('open', id=>{
-                conn = peer.connect('tombala-auto-'+code);
+                conn = peer.connect('tombala-final-'+code);
                 conn.on('open', ()=>{
                     show('screen-player-wait');
                     conn.send({type:'JOIN', name:myName});
@@ -355,12 +394,16 @@
         function handlePlayerData(data){
             if(data.type==='START'){
                 generateCard();
-                show('screen-game-player');
+                show('screen-game');
+                // Host kontrollerini gizle (garanti olsun)
+                document.getElementById('host-controls-area').style.display = 'none';
+                document.getElementById('master-board').style.display = 'none';
             }
             if(data.type==='NUMBER'){
                 document.getElementById('last-num').innerText = data.val;
                 speak(data.val);
-                // Yeni sayı geldi, butonu aktif et
+                
+                // Butonu Aktif Et
                 const btn = document.getElementById('btn-player-ready');
                 btn.disabled = false;
                 btn.innerText = "HAZIRIM (Sıradaki) 👍";
@@ -370,14 +413,18 @@
             if(data.type==='FAIL') { document.getElementById('screen-fail').style.display='flex'; }
         }
 
+        // --- ORTAK FONKSİYONLAR ---
         function iAmReady(){
-            // Butonu pasife çek
-            const btn = document.getElementById('btn-player-ready');
-            btn.disabled = true;
-            btn.innerText = "Diğerleri Bekleniyor... ⏳";
-            btn.style.background = "#95a5a6";
-            
-            conn.send({type:'READY'});
+            if(amIHost) {
+                iAmReadyHost();
+            } else {
+                // Player Ready
+                const btn = document.getElementById('btn-player-ready');
+                btn.disabled = true;
+                btn.innerText = "Diğerleri Bekleniyor... ⏳";
+                btn.style.background = "#7f8c8d";
+                conn.send({type:'READY'});
+            }
         }
 
         function generateCard(){
@@ -417,7 +464,8 @@
 
         function claimWin(lvl){
             if(lvl <= currentCinkoLevel) return alert("Bunu zaten aldın!");
-            // Check rows locally simply to gather numbers
+            
+            // Kartı Tara
             const rows = document.querySelectorAll('.card-row');
             let markedNums = [];
             rows.forEach(r=>{
@@ -425,9 +473,25 @@
                     r.querySelectorAll('.cell.marked').forEach(c=>markedNums.push(parseInt(c.innerText)));
                 }
             });
+
             if(markedNums.length===0) return alert("Tamamlanmış satır yok!");
             
-            conn.send({type:'CLAIM', rows:markedNums, lvl:lvl, name:myName});
+            if(amIHost) {
+                // Host kendi kendini kontrol etsin
+                let valid = markedNums.every(n => drawnNumbers.includes(n));
+                if(valid){
+                    alert("SEN " + lvl + ". ÇİNKO YAPTIN! 🎉");
+                    broadcast({type:'WIN', msg: "YÖNETİCİ " + lvl + ". ÇİNKO YAPTIN! 🎉"});
+                    confetti();
+                    currentCinkoLevel = lvl;
+                } else {
+                    document.getElementById('screen-fail').style.display='flex';
+                    broadcast({type:'WIN', msg: "☠️ YÖNETİCİ YANLIŞ BASTI VE ELENDİ!"});
+                }
+            } else {
+                // Player Host'a göndersin
+                conn.send({type:'CLAIM', rows:markedNums, lvl:lvl, name:myName});
+            }
         }
     </script>
 </body>
